@@ -1,4 +1,8 @@
 :root {
+  /*
+    The actual theme is controlled by theme.js (html[data-theme]).
+    This file provides global baseline styles that reference App.css variables.
+  */
   color-scheme: light;
 }
 
@@ -12,9 +16,16 @@ body {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f9fafb;
-  color: #111827;
+
+  /* Use theme variables (defined in App.css) */
+  background: var(--bg);
+  color: var(--text);
+
   text-rendering: optimizeLegibility;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 *,
@@ -24,11 +35,11 @@ body {
 }
 
 ::selection {
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--selection);
 }
 
 a {
-  color: #3b82f6;
+  color: var(--primary);
 }
 
 button {

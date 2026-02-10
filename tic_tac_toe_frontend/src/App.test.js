@@ -15,6 +15,9 @@ test('renders start screen Tic Tac Toe title', () => {
   expect(screen.getByRole('heading', { name: /tic tac toe/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /human vs human/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /human vs computer/i })).toBeInTheDocument();
+
+  // Theme selector is visible on the start screen.
+  expect(screen.getByLabelText(/select theme/i)).toBeInTheDocument();
 });
 
 test('HvCOM: COM makes a move shortly after human move (no stuck thinking)', () => {

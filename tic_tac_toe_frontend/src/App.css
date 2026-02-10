@@ -1,29 +1,96 @@
-/* Tic Tac Toe - modern light theme (primary: #3b82f6, accent: #06b6d4) */
+/* Tic Tac Toe - themeable design (light/dark) driven by CSS variables */
 :root {
-  --bg: #f9fafb;
-  --surface: #ffffff;
-  --text: #111827;
-  --muted: #64748b;
+  /* radii remain constant across themes */
+  --radius-card: 16px;
+  --radius-square: 14px;
 
+  /* brand accents remain constant across themes */
   --primary: #3b82f6;
   --accent: #06b6d4;
   --danger: #ef4444;
 
+  /*
+    Default theme variables (light).
+    The actual active theme is controlled by html[data-theme] (set in theme.js).
+  */
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --text: #111827;
+  --muted: #64748b;
+
   --border: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.22);
+
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.08);
+
+  /* focus ring stays obvious on light */
   --focus: 0 0 0 4px rgba(59, 130, 246, 0.22);
 
-  --radius-card: 16px;
-  --radius-square: 14px;
+  /* selection color shared */
+  --selection: rgba(59, 130, 246, 0.18);
+
+  /* page decorative gradients */
+  --page-grad-1: rgba(59, 130, 246, 0.14);
+  --page-grad-2: rgba(6, 182, 212, 0.12);
+
+  /* square + subtle fills */
+  --square-bg: #ffffff;
+  --square-hover-bg: linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(6, 182, 212, 0.04));
+
+  /* badge chip backgrounds */
+  --chip-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.00));
+  --mini-chip-bg: rgba(255, 255, 255, 0.70);
+
+  /* winner/draw */
+  --banner-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  --draw-text: rgba(17, 24, 39, 0.92);
+  --draw-border: rgba(100, 116, 139, 0.30);
+  --draw-bg: linear-gradient(180deg, rgba(100, 116, 139, 0.10), rgba(15, 23, 42, 0.03));
+}
+
+/* Dark theme overrides */
+html[data-theme='dark'] {
+  --bg: #0b1220;
+  --surface: #0f172a; /* slate-900-ish */
+  --surface-2: #111c33;
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(226, 232, 240, 0.72);
+
+  --border: rgba(226, 232, 240, 0.14);
+  --border-strong: rgba(226, 232, 240, 0.22);
+
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.38);
+  --shadow-soft: 0 14px 30px rgba(0, 0, 0, 0.32);
+
+  /* brighter focus ring for dark surfaces */
+  --focus: 0 0 0 4px rgba(96, 165, 250, 0.28);
+
+  --selection: rgba(96, 165, 250, 0.28);
+
+  /* slightly stronger decorative gradients for dark background */
+  --page-grad-1: rgba(59, 130, 246, 0.22);
+  --page-grad-2: rgba(6, 182, 212, 0.18);
+
+  --square-bg: rgba(255, 255, 255, 0.04);
+  --square-hover-bg: linear-gradient(180deg, rgba(59, 130, 246, 0.14), rgba(6, 182, 212, 0.10));
+
+  --chip-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  --mini-chip-bg: rgba(255, 255, 255, 0.06);
+
+  --banner-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+  --draw-text: rgba(226, 232, 240, 0.92);
+  --draw-border: rgba(148, 163, 184, 0.28);
+  --draw-bg: linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(0, 0, 0, 0.10));
 }
 
 /* App shell */
 .App {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 50% -200px, rgba(59, 130, 246, 0.14), transparent 60%),
-    radial-gradient(900px 500px at 110% 20%, rgba(6, 182, 212, 0.12), transparent 55%),
+    radial-gradient(1200px 600px at 50% -200px, var(--page-grad-1), transparent 60%),
+    radial-gradient(900px 500px at 110% 20%, var(--page-grad-2), transparent 55%),
     var(--bg);
   color: var(--text);
 }
@@ -107,7 +174,7 @@
   -webkit-appearance: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-square);
-  background: #ffffff;
+  background: var(--square-bg);
   cursor: pointer;
 
   /*
@@ -145,7 +212,7 @@
   transform: translateY(-1px);
   border-color: rgba(59, 130, 246, 0.45);
   box-shadow: var(--shadow-soft);
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(6, 182, 212, 0.04));
+  background: var(--square-hover-bg);
 }
 
 .ttt-square:active {
@@ -226,7 +293,7 @@
   letter-spacing: -0.02em;
   font-size: 18px;
   color: var(--text);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--banner-shadow);
   transform-origin: center;
 }
 
@@ -241,9 +308,9 @@
 }
 
 .winner-banner--draw {
-  border-color: rgba(100, 116, 139, 0.30);
-  background: linear-gradient(180deg, rgba(100, 116, 139, 0.10), rgba(15, 23, 42, 0.03));
-  color: rgba(17, 24, 39, 0.92);
+  border-color: var(--draw-border);
+  background: var(--draw-bg);
+  color: var(--draw-text);
 }
 
 /* Subtle motion emphasis (reduced-motion safe below) */
@@ -430,7 +497,7 @@
   letter-spacing: -0.01em;
   cursor: pointer;
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text);
   transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, border-color 120ms ease;
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
@@ -498,6 +565,62 @@
   margin-bottom: 10px;
 }
 
+.ttt-topRowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Start screen top row (icon + theme selector) */
+.ttt-startTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ttt-themeSelector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+
+  /* Fallback first */
+  background: var(--surface);
+
+  /* If supported, add a subtle translucency on both themes */
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+}
+
+.ttt-themeLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.ttt-themeSelect {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 6px 8px;
+  line-height: 1.1;
+}
+
+.ttt-themeSelect:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
 .ttt-badges {
   display: flex;
   align-items: center;
@@ -514,8 +637,8 @@
   border: 1px solid var(--border);
   font-size: 12px;
   font-weight: 800;
-  color: rgba(17, 24, 39, 0.92);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.00));
+  color: var(--text);
+  background: var(--chip-bg);
 }
 
 .ttt-modeBadge--hvh {
@@ -534,7 +657,7 @@
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px dashed rgba(100, 116, 139, 0.35);
-  background: rgba(255, 255, 255, 0.70);
+  background: var(--mini-chip-bg);
   color: var(--muted);
   font-size: 12px;
   font-weight: 750;
@@ -544,7 +667,7 @@
   appearance: none;
   -webkit-appearance: none;
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text);
   padding: 8px 10px;
   border-radius: 12px;

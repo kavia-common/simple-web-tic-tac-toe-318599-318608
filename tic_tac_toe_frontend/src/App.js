@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
 import { pickComputerMove } from './ai';
+import { applyTheme, resolveInitialTheme, storeTheme } from './theme';
 
 /**
  * Stateless square for the Tic Tac Toe board.
@@ -64,9 +65,32 @@ function Board({ squares, onSquareClick, disabled, winnerLine }) {
 }
 
 /**
+ * Small theme switcher control.
+ */
+function ThemeSelector({ theme, onChange }) {
+  return (
+    <div className="ttt-themeSelector" role="group" aria-label="Theme selection">
+      <label className="ttt-themeLabel" htmlFor="theme-select">
+        Theme
+      </label>
+      <select
+        id="theme-select"
+        className="ttt-themeSelect"
+        value={theme}
+        onChange={(e) => onChange?.(e.target.value)}
+        aria-label="Select theme"
+      >
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+  );
+}
+
+/**
  * Landing screen for selecting game mode.
  */
-function StartScreen({ onSelectMode }) {
+function StartScreen({ onSelectMode, theme, onThemeChange }) {
   return (
     <div className="ttt-startPage" aria-label="Start screen">
       <div className="ttt-startCard ttt-enter" role="region" aria-label="Mode selection">
@@ -76,9 +100,13 @@ function StartScreen({ onSelectMode }) {
         </div>
 
         <header className="ttt-header ttt-startHeader">
-          <div className="ttt-startIcon" aria-hidden="true">
-            ⭕❌
+          <div className="ttt-startTopRow">
+            <div className="ttt-startIcon" aria-hidden="true">
+              ⭕❌
+            </div>
+            <ThemeSelector theme={theme} onChange={onThemeChange} />
           </div>
+
           <h1 className="ttt-title">Tic Tac Toe</h1>
           <p className="ttt-subtitle">
             Pick a mode to start a quick match. Keyboard-friendly and responsive.
@@ -112,8 +140,17 @@ function StartScreen({ onSelectMode }) {
   );
 }
 
-// PUBLIC_INTERFACE
+/**
+ * PUBLIC_INTERFACE
+ * Main application component.
+ *
+ * Adds an app-wide theme system (light/dark) driven by CSS variables on the document root.
+ * Theme preference is persisted to localStorage; when none is stored, system preference
+ * (prefers-color-scheme) is used as a fallback.
+ */
 function App() {
+  const [theme, setTheme] = useState(() => resolveInitialTheme());
+
   const [screen, setScreen] = useState('start'); // 'start' | 'game'
   const [mode, setMode] = useState(null); // 'hvh' | 'hvc' | null
 
@@ -130,6 +167,18 @@ function App() {
   // and against stale timeouts firing after a restart/mode change.
   const comTimeoutRef = useRef(null);
   const comTurnTokenRef = useRef(0);
+
+  // Apply theme on mount + whenever it changes.
+  useEffect(() => {
+    applyTheme(theme);
+    storeTheme(theme);
+  }, [theme]);
+
+  // PUBLIC_INTERFACE
+  const handleThemeChange = (nextTheme) => {
+    const normalized = nextTheme === 'dark' ? 'dark' : 'light';
+    setTheme(normalized);
+  };
 
   const winnerInfo = useMemo(() => getWinner(board), [board]);
   const draw = useMemo(() => isDraw(board), [board]);
@@ -337,7 +386,7 @@ function App() {
     return (
       <div className="App">
         <main className="ttt-page" aria-label="Tic Tac Toe">
-          <StartScreen onSelectMode={startGame} />
+          <StartScreen onSelectMode={startGame} theme={theme} onThemeChange={handleThemeChange} />
         </main>
       </div>
     );
@@ -373,14 +422,17 @@ function App() {
                 )}
               </div>
 
-              <button
-                type="button"
-                className="ttt-backBtn"
-                onClick={handleBackToStart}
-                aria-label="Back to start screen"
-              >
-                Back to Start
-              </button>
+              <div className="ttt-topRowRight" aria-label="Top right controls">
+                <ThemeSelector theme={theme} onChange={handleThemeChange} />
+                <button
+                  type="button"
+                  className="ttt-backBtn"
+                  onClick={handleBackToStart}
+                  aria-label="Back to start screen"
+                >
+                  Back to Start
+                </button>
+              </div>
             </div>
 
             <h1 className="ttt-title">Tic Tac Toe</h1>
