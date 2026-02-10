@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import './App.css';
+import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
 
 /**
  * Stateless square for the Tic Tac Toe board.
- * UI only: click handler is passed in but gameplay is not implemented in this step.
+ * UI only: click handler is passed in.
  */
 function Square({ value, index, onClick, disabled }) {
   return (
@@ -23,15 +24,11 @@ function Square({ value, index, onClick, disabled }) {
 
 /**
  * 3x3 board layout.
- * UI only: receives squares and onSquareClick via props.
+ * Receives squares and onSquareClick via props.
  */
 function Board({ squares, onSquareClick, disabled }) {
   return (
-    <div
-      className="ttt-board"
-      role="grid"
-      aria-label="Tic Tac Toe board"
-    >
+    <div className="ttt-board" role="grid" aria-label="Tic Tac Toe board">
       {squares.map((value, idx) => (
         <div key={idx} className="ttt-cell" role="gridcell">
           <Square
@@ -48,21 +45,54 @@ function Board({ squares, onSquareClick, disabled }) {
 
 // PUBLIC_INTERFACE
 function App() {
-  // UI skeleton state placeholders (no gameplay yet)
-  const currentPlayer = 'X';
-  const statusText = `Turn: ${currentPlayer}`;
-  const resultText = 'Result: —';
+  const [board, setBoard] = useState(() => createEmptyBoard());
+  const [activePlayer, setActivePlayer] = useState('X'); // X always starts
 
-  const squares = Array.from({ length: 9 }, () => '');
+  const winnerInfo = useMemo(() => getWinner(board), [board]);
+  const draw = useMemo(() => isDraw(board), [board]);
+
+  const gameEnded = Boolean(winnerInfo) || draw;
+
+  const statusText = winnerInfo
+    ? `Winner: ${winnerInfo.winner}`
+    : draw
+      ? 'Draw'
+      : `Turn: ${activePlayer}`;
+
+  const resultText = winnerInfo
+    ? `${winnerInfo.winner} wins!`
+    : draw
+      ? `It's a draw.`
+      : 'Result: —';
 
   // PUBLIC_INTERFACE
-  const handleSquareClick = (_index) => {
-    // Intentionally empty for this step (gameplay implemented later).
+  const handleSquareClick = (index) => {
+    // Block all interactions after game end.
+    if (gameEnded) return;
+
+    setBoard((prev) => {
+      // If user clicks an already-filled square, do nothing.
+      if (prev[index]) return prev;
+
+      const next = prev.slice();
+      next[index] = activePlayer;
+
+      return next;
+    });
+
+    // Only toggle player if the move is valid (square was empty and game not ended).
+    // We must check the current board square synchronously (not from state update result),
+    // so we use the latest `board` value here.
+    if (!board[index]) {
+      setActivePlayer((p) => (p === 'X' ? 'O' : 'X'));
+    }
   };
 
   // PUBLIC_INTERFACE
   const handleRestart = () => {
-    // Intentionally empty for this step (game reset implemented later).
+    // Deterministic reset: X always starts, empty board, no result.
+    setBoard(createEmptyBoard());
+    setActivePlayer('X');
   };
 
   return (
@@ -79,7 +109,11 @@ function App() {
           </div>
 
           <div className="ttt-boardWrap" aria-label="Board container">
-            <Board squares={squares} onSquareClick={handleSquareClick} disabled={false} />
+            <Board
+              squares={board}
+              onSquareClick={handleSquareClick}
+              disabled={gameEnded}
+            />
           </div>
 
           <div className="ttt-result" aria-live="polite" aria-label="Result">
@@ -87,7 +121,11 @@ function App() {
           </div>
 
           <div className="ttt-actions">
-            <button type="button" className="ttt-restartBtn" onClick={handleRestart}>
+            <button
+              type="button"
+              className="ttt-restartBtn"
+              onClick={handleRestart}
+            >
               Restart
             </button>
           </div>
