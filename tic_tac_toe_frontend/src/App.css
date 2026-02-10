@@ -116,7 +116,8 @@
     box-shadow 120ms ease,
     border-color 120ms ease,
     background 120ms ease,
-    filter 120ms ease;
+    filter 120ms ease,
+    opacity 120ms ease;
   user-select: none;
   position: relative;
 
@@ -149,6 +150,31 @@
   box-shadow: none;
 }
 
+/* Win-state square styling (requested classNames) */
+.square--winning {
+  border-color: rgba(6, 182, 212, 0.85);
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.16), rgba(59, 130, 246, 0.10));
+  box-shadow:
+    0 0 0 2px rgba(6, 182, 212, 0.20),
+    0 12px 28px rgba(6, 182, 212, 0.16);
+}
+
+.square--winning .ttt-squareValue {
+  color: var(--text);
+}
+
+.square--dimmed {
+  opacity: 0.38;
+  filter: grayscale(0.10);
+}
+
+/* Keep focus ring meaningful even in win/dimmed state */
+.ttt-square.square--winning:focus-visible,
+.ttt-square.square--dimmed:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
 /* X / O value */
 .ttt-squareValue {
   font-size: clamp(44px, 7vw, 64px);
@@ -156,6 +182,58 @@
   letter-spacing: -0.04em;
   color: var(--text);
   line-height: 1;
+}
+
+/* Prominent banner below the board (win/draw) */
+.winner-banner {
+  margin: 14px auto 0;
+  width: min(420px, 100%);
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  font-size: 18px;
+  color: var(--text);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transform-origin: center;
+}
+
+.winner-banner:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.winner-banner--win {
+  border-color: rgba(6, 182, 212, 0.55);
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.18), rgba(59, 130, 246, 0.10));
+}
+
+.winner-banner--draw {
+  border-color: rgba(100, 116, 139, 0.30);
+  background: linear-gradient(180deg, rgba(100, 116, 139, 0.10), rgba(15, 23, 42, 0.03));
+  color: rgba(17, 24, 39, 0.92);
+}
+
+/* Subtle motion emphasis (reduced-motion safe below) */
+@keyframes winner-pop {
+  0% {
+    transform: scale(0.985);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  }
+  55% {
+    transform: scale(1.01);
+    box-shadow: 0 16px 30px rgba(6, 182, 212, 0.14);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  }
+}
+
+.winner-banner--win {
+  animation: winner-pop 520ms ease-out 1;
 }
 
 /* Optional result area (not currently used by App.js but kept for future use) */
@@ -205,11 +283,26 @@
   box-shadow: var(--focus);
 }
 
+/* Emphasized restart button on win/draw */
+.ttt-restartBtn--emphasis {
+  border-color: rgba(6, 182, 212, 0.55);
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.95), rgba(59, 130, 246, 0.92));
+  box-shadow:
+    0 14px 28px rgba(6, 182, 212, 0.18),
+    0 10px 22px rgba(37, 99, 235, 0.12);
+}
+
+.ttt-restartBtn--emphasis:hover {
+  filter: brightness(1.03);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .ttt-square,
-  .ttt-restartBtn {
+  .ttt-restartBtn,
+  .winner-banner {
     transition: none;
+    animation: none;
   }
 
   .ttt-square:hover,
@@ -239,5 +332,9 @@
 
   .ttt-square {
     border-radius: 12px;
+  }
+
+  .winner-banner {
+    font-size: 17px;
   }
 }

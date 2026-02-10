@@ -6,7 +6,7 @@ import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
  * Stateless square for the Tic Tac Toe board.
  * UI only: click handler is passed in.
  */
-function Square({ value, index, onClick, disabled }) {
+function Square({ value, index, onClick, disabled, variantClassName }) {
   const row = Math.floor(index / 3) + 1;
   const col = (index % 3) + 1;
   const valueLabel = value ? value : 'empty';
@@ -14,7 +14,7 @@ function Square({ value, index, onClick, disabled }) {
   return (
     <button
       type="button"
-      className="ttt-square"
+      className={`ttt-square ${variantClassName || ''}`.trim()}
       onClick={onClick}
       disabled={disabled}
       aria-label={`Row ${row} Column ${col}: ${valueLabel}`}
@@ -30,19 +30,34 @@ function Square({ value, index, onClick, disabled }) {
  * 3x3 board layout.
  * Receives squares and onSquareClick via props.
  */
-function Board({ squares, onSquareClick, disabled }) {
+function Board({ squares, onSquareClick, disabled, winnerLine }) {
+  const winningSet = useMemo(() => new Set(winnerLine || []), [winnerLine]);
+
   return (
     <div className="ttt-board" role="grid" aria-label="Tic Tac Toe board">
-      {squares.map((value, idx) => (
-        <div key={idx} className="ttt-cell" role="gridcell">
-          <Square
-            value={value}
-            index={idx}
-            onClick={() => onSquareClick?.(idx)}
-            disabled={disabled || Boolean(value)}
-          />
-        </div>
-      ))}
+      {squares.map((value, idx) => {
+        const isWinningSquare = winningSet.has(idx);
+        const showWinStyling = disabled && (winnerLine?.length ?? 0) === 3;
+
+        // After a win, highlight only the winning 3 squares and dim the rest.
+        const variantClassName = showWinStyling
+          ? isWinningSquare
+            ? 'square--winning'
+            : 'square--dimmed'
+          : '';
+
+        return (
+          <div key={idx} className="ttt-cell" role="gridcell">
+            <Square
+              value={value}
+              index={idx}
+              onClick={() => onSquareClick?.(idx)}
+              disabled={disabled || Boolean(value)}
+              variantClassName={variantClassName}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -52,25 +67,46 @@ function App() {
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [activePlayer, setActivePlayer] = useState('X'); // X always starts
 
-  const statusRef = useRef(null);
+  const restartBtnRef = useRef(null);
+  const bannerRef = useRef(null);
 
   const winnerInfo = useMemo(() => getWinner(board), [board]);
   const draw = useMemo(() => isDraw(board), [board]);
   const gameEnded = Boolean(winnerInfo) || draw;
 
+  // Keep the turn indicator unambiguous: it becomes winner/draw messaging when ended.
   const statusText = useMemo(() => {
-    if (winnerInfo) return `Player ${winnerInfo.winner} wins!`;
-    if (draw) return `It's a draw`;
+    if (winnerInfo) return `Player ${winnerInfo.winner}'s turn`; // not used when ended, kept for safety
+    if (draw) return `Player ${activePlayer}'s turn`; // not used when ended, kept for safety
     return `Player ${activePlayer}'s turn`;
   }, [winnerInfo, draw, activePlayer]);
 
+  const bannerText = useMemo(() => {
+    if (winnerInfo) return `Player ${winnerInfo.winner} wins!`;
+    if (draw) return `It's a draw`;
+    return '';
+  }, [winnerInfo, draw]);
+
   /**
-   * When the game ends (win/draw), move focus to the status message so screen readers
-   * announce the result change in a predictable way.
+   * When the game ends (win/draw), ensure result is clearly announced and focus is placed
+   * on a meaningful target for keyboard + screen readers:
+   * - Prefer focusing the banner (so it's announced and visible contextually)
+   * - If banner isn't available, fallback to Restart button
+   *
+   * This also handles the case where focus was on a (now disabled/dimmed) square.
    */
   useEffect(() => {
-    if (gameEnded) {
-      statusRef.current?.focus?.();
+    if (!gameEnded) return;
+
+    // If the active element is inside the board, move focus away to avoid trapping
+    // focus on a now-disabled control.
+    const active = document.activeElement;
+    const isSquareFocused =
+      active instanceof HTMLElement && active.classList.contains('ttt-square');
+
+    const focusTarget = bannerRef.current || restartBtnRef.current;
+    if (isSquareFocused || focusTarget) {
+      focusTarget?.focus?.();
     }
   }, [gameEnded]);
 
@@ -98,8 +134,15 @@ function App() {
     setBoard(createEmptyBoard());
     setActivePlayer('X');
     // Focus behavior: keep focus on the Restart button (default browser behavior).
-    // Status remains a polite live region for the reset announcement.
   };
+
+  const bannerKindClass = winnerInfo
+    ? 'winner-banner--win'
+    : draw
+      ? 'winner-banner--draw'
+      : '';
+
+  const restartEmphasisClass = gameEnded ? 'ttt-restartBtn--emphasis' : '';
 
   return (
     <div className="App">
@@ -110,31 +153,45 @@ function App() {
             <p className="ttt-subtitle">A simple 3×3 game for two players</p>
           </header>
 
-          <div className="ttt-status">
-            <span
-              ref={statusRef}
-              className="ttt-statusLabel"
-              role="status"
-              aria-live="polite"
-              tabIndex={-1}
-            >
-              {statusText}
-            </span>
-          </div>
+          {/* Existing status indicator stays for in-game turn indication only */}
+          {!gameEnded && (
+            <div className="ttt-status">
+              <span className="ttt-statusLabel" role="status" aria-live="polite">
+                {statusText}
+              </span>
+            </div>
+          )}
 
           <div className="ttt-boardWrap" aria-label="Board container">
             <Board
               squares={board}
               onSquareClick={handleSquareClick}
               disabled={gameEnded}
+              winnerLine={winnerInfo?.line || null}
             />
           </div>
 
+          {/* Prominent result banner (win/draw) below board */}
+          {gameEnded && (
+            <div
+              ref={bannerRef}
+              className={`winner-banner ${bannerKindClass}`.trim()}
+              role="status"
+              aria-live="polite"
+              tabIndex={-1}
+              aria-label={winnerInfo ? 'Winner announcement' : 'Draw announcement'}
+            >
+              {bannerText}
+            </div>
+          )}
+
           <div className="ttt-actions">
             <button
+              ref={restartBtnRef}
               type="button"
-              className="ttt-restartBtn"
+              className={`ttt-restartBtn ${restartEmphasisClass}`.trim()}
               onClick={handleRestart}
+              aria-label={gameEnded ? 'Restart game (recommended)' : 'Restart game'}
             >
               Restart
             </button>
