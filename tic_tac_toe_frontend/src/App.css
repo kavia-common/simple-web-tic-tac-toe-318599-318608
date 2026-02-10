@@ -11,17 +11,24 @@
 
   --border: rgba(15, 23, 42, 0.12);
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.08);
   --focus: 0 0 0 4px rgba(59, 130, 246, 0.22);
+
+  --radius-card: 16px;
+  --radius-square: 14px;
 }
 
+/* App shell */
 .App {
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 50% -200px, rgba(59, 130, 246, 0.14), transparent 60%),
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgba(59, 130, 246, 0.14), transparent 60%),
     radial-gradient(900px 500px at 110% 20%, rgba(6, 182, 212, 0.12), transparent 55%),
     var(--bg);
   color: var(--text);
 }
 
+/* Centered layout */
 .ttt-page {
   min-height: 100vh;
   display: grid;
@@ -29,24 +36,26 @@
   padding: 32px 16px;
 }
 
+/* Surface card */
 .ttt-card {
   width: min(520px, 100%);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow);
   padding: 24px;
 }
 
+/* Header */
 .ttt-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .ttt-title {
   margin: 0;
   font-size: 28px;
-  line-height: 1.2;
+  line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
@@ -56,6 +65,7 @@
   font-size: 14px;
 }
 
+/* Status / Turn indicator */
 .ttt-status {
   margin: 18px 0 14px;
   display: flex;
@@ -63,14 +73,15 @@
 }
 
 .ttt-statusLabel {
-  font-weight: 600;
+  font-weight: 650;
   color: var(--text);
-  padding: 8px 12px;
+  padding: 9px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(59, 130, 246, 0.10), rgba(6, 182, 212, 0.06));
 }
 
+/* Board */
 .ttt-boardWrap {
   display: flex;
   justify-content: center;
@@ -78,40 +89,51 @@
 }
 
 .ttt-board {
-  width: min(360px, 90vw);
+  width: min(360px, 92vw);
   aspect-ratio: 1 / 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
+/* Keep wrapper nodes but let the button define the box */
 .ttt-cell {
   display: contents;
 }
 
+/* Square button */
 .ttt-square {
   appearance: none;
   -webkit-appearance: none;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-square);
   background: #ffffff;
   cursor: pointer;
   display: grid;
   place-items: center;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    filter 120ms ease;
   user-select: none;
   position: relative;
+
+  /* Prevent accidental zoom/selection behavior on mobile */
+  touch-action: manipulation;
 }
 
 .ttt-square:hover {
   transform: translateY(-1px);
   border-color: rgba(59, 130, 246, 0.45);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-soft);
   background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(6, 182, 212, 0.04));
 }
 
 .ttt-square:active {
   transform: translateY(0px);
+  filter: brightness(0.99);
 }
 
 .ttt-square:focus-visible {
@@ -122,16 +144,21 @@
 
 .ttt-square:disabled {
   cursor: not-allowed;
-  opacity: 0.75;
+  opacity: 0.78;
+  transform: none;
+  box-shadow: none;
 }
 
+/* X / O value */
 .ttt-squareValue {
   font-size: clamp(44px, 7vw, 64px);
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: -0.04em;
   color: var(--text);
+  line-height: 1;
 }
 
+/* Optional result area (not currently used by App.js but kept for future use) */
 .ttt-result {
   text-align: center;
   margin-top: 12px;
@@ -139,9 +166,10 @@
   border-radius: 12px;
   border: 1px dashed rgba(100, 116, 139, 0.35);
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 650;
 }
 
+/* Actions */
 .ttt-actions {
   display: flex;
   justify-content: center;
@@ -154,9 +182,9 @@
   border: 1px solid rgba(59, 130, 246, 0.35);
   background: linear-gradient(180deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
   color: #ffffff;
-  padding: 10px 16px;
+  padding: 11px 16px;
   border-radius: 12px;
-  font-weight: 700;
+  font-weight: 750;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.20);
@@ -169,6 +197,7 @@
 
 .ttt-restartBtn:active {
   transform: translateY(0px);
+  filter: brightness(0.99);
 }
 
 .ttt-restartBtn:focus-visible {
@@ -176,11 +205,32 @@
   box-shadow: var(--focus);
 }
 
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ttt-square,
+  .ttt-restartBtn {
+    transition: none;
+  }
+
+  .ttt-square:hover,
+  .ttt-restartBtn:hover {
+    transform: none;
+  }
+}
+
 /* Responsive tweaks */
 @media (max-width: 420px) {
+  .ttt-page {
+    padding: 24px 12px;
+  }
+
   .ttt-card {
     padding: 18px;
     border-radius: 14px;
+  }
+
+  .ttt-title {
+    font-size: 24px;
   }
 
   .ttt-board {

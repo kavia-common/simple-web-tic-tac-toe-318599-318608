@@ -14,10 +14,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #f9fafb;
   color: #111827;
+  text-rendering: optimizeLegibility;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+a {
+  color: #3b82f6;
+}
+
+button {
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
