@@ -109,8 +109,24 @@
   border-radius: var(--radius-square);
   background: #ffffff;
   cursor: pointer;
+
+  /*
+    Critical: lock each cell to a stable square box so content (X/O glyph)
+    never changes row height. The grid will size the cell by width, and
+    aspect-ratio enforces a 1:1 height.
+  */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  /*
+    Use grid centering, but ensure the button doesn't grow from content.
+    min-height: 0 helps in certain grid/flex sizing edge cases.
+  */
   display: grid;
   place-items: center;
+  min-height: 0;
+  padding: 0;
+
   transition:
     transform 120ms ease,
     box-shadow 120ms ease,
@@ -177,11 +193,25 @@
 
 /* X / O value */
 .ttt-squareValue {
+  /*
+    Give the glyph its own stable layout box so the button's intrinsic sizing
+    never changes when content appears. The board remains perfectly even.
+  */
+  display: grid;
+  place-items: center;
+
+  /*
+    line-height: 1 is typically fine, but different glyphs/fonts can still
+    introduce tiny baseline/metrics differences; forcing a fixed line-height
+    and preventing wrapping removes that variability.
+  */
+  line-height: 1;
+  white-space: nowrap;
+
   font-size: clamp(44px, 7vw, 64px);
   font-weight: 850;
   letter-spacing: -0.04em;
   color: var(--text);
-  line-height: 1;
 }
 
 /* Prominent banner below the board (win/draw) */
