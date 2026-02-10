@@ -16,8 +16,22 @@ test('renders start screen Tic Tac Toe title', () => {
   expect(screen.getByRole('button', { name: /human vs human/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /human vs computer/i })).toBeInTheDocument();
 
-  // Theme selector is visible on the start screen.
-  expect(screen.getByLabelText(/select theme/i)).toBeInTheDocument();
+  // Theme selector is visible on the start screen (switch toggle).
+  expect(screen.getByRole('switch', { name: /theme/i })).toBeInTheDocument();
+});
+
+test('theme switch toggles and applies html[data-theme]', () => {
+  render(<App />);
+
+  const themeSwitch = screen.getByRole('switch', { name: /theme/i });
+
+  // Toggle once; should move to dark.
+  fireEvent.click(themeSwitch);
+  expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+  // Toggle again; should move back to light.
+  fireEvent.click(themeSwitch);
+  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
 });
 
 test('HvCOM: COM makes a move shortly after human move (no stuck thinking)', () => {

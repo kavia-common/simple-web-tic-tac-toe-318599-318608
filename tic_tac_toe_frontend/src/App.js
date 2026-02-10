@@ -65,24 +65,69 @@ function Board({ squares, onSquareClick, disabled, winnerLine }) {
 }
 
 /**
- * Small theme switcher control.
+ * Small theme switcher control (slider / toggle).
+ *
+ * Accessibility:
+ * - Uses role="switch" and aria-checked.
+ * - Supports Space/Enter to toggle and ArrowLeft/ArrowRight for explicit selection.
  */
 function ThemeSelector({ theme, onChange }) {
+  const isDark = theme === 'dark';
+
+  const setTheme = (next) => {
+    const normalized = next === 'dark' ? 'dark' : 'light';
+    onChange?.(normalized);
+  };
+
+  const toggle = () => setTheme(isDark ? 'light' : 'dark');
+
+  const handleKeyDown = (e) => {
+    // Make the control feel like a real switch.
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      toggle();
+      return;
+    }
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setTheme('light');
+      return;
+    }
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setTheme('dark');
+      return;
+    }
+  };
+
   return (
     <div className="ttt-themeSelector" role="group" aria-label="Theme selection">
-      <label className="ttt-themeLabel" htmlFor="theme-select">
+      <span className="ttt-themeLabel" id="theme-label">
         Theme
-      </label>
-      <select
-        id="theme-select"
-        className="ttt-themeSelect"
-        value={theme}
-        onChange={(e) => onChange?.(e.target.value)}
-        aria-label="Select theme"
+      </span>
+
+      <button
+        type="button"
+        className={`ttt-themeToggle ${isDark ? 'is-dark' : 'is-light'}`.trim()}
+        role="switch"
+        aria-checked={isDark}
+        aria-labelledby="theme-label"
+        aria-label="Theme"
+        onClick={toggle}
+        onKeyDown={handleKeyDown}
       >
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
+        <span className="ttt-themeToggleTrack" aria-hidden="true">
+          <span className="ttt-themeToggleOption ttt-themeToggleOption--left" aria-hidden="true">
+            Light
+          </span>
+          <span className="ttt-themeToggleOption ttt-themeToggleOption--right" aria-hidden="true">
+            Dark
+          </span>
+          <span className="ttt-themeToggleKnob" aria-hidden="true" />
+        </span>
+      </button>
     </div>
   );
 }
