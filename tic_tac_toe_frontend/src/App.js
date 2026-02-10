@@ -120,11 +120,16 @@ function App() {
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [activePlayer, setActivePlayer] = useState('X'); // X always starts
 
-  // Used to prevent multiple AI moves during a single turn/render cycle.
+  // Used to show the "COM thinking…" badge and to disable inputs during COM turn.
   const [isComThinking, setIsComThinking] = useState(false);
 
   const restartBtnRef = useRef(null);
   const bannerRef = useRef(null);
+
+  // Refs to make COM scheduling robust against React 18 StrictMode effect double-invocation
+  // and against stale timeouts firing after a restart/mode change.
+  const comTimeoutRef = useRef(null);
+  const comTurnTokenRef = useRef(0);
 
   const winnerInfo = useMemo(() => getWinner(board), [board]);
   const draw = useMemo(() => isDraw(board), [board]);
@@ -172,40 +177,61 @@ function App() {
 
   /**
    * COM mode: automatically make a legal move after the human's turn.
-   * This effect is deterministic and guarded to avoid multiple AI moves.
+   *
+   * Robustness goals:
+   * - Ensure only one COM timeout exists at a time (prevents double-move).
+   * - Ensure "thinking" ALWAYS clears (even on cleanup/reset/unmount).
+   * - Ensure a legal move is always chosen (fallback to first empty).
+   * - Apply COM move atomically based on the latest board snapshot.
+   *
+   * Note: In React 18 StrictMode, effects can run twice in dev which can expose
+   * race conditions if scheduling isn't explicitly cancelled/tokened.
    */
   useEffect(() => {
-    if (screen !== 'game') return;
-    if (!isComTurn) return;
-    if (gameEnded) return;
-    if (isComThinking) return;
+    // Always clear any pending timeout when dependencies change.
+    if (comTimeoutRef.current) {
+      window.clearTimeout(comTimeoutRef.current);
+      comTimeoutRef.current = null;
+    }
+
+    if (screen !== 'game' || !isComTurn || gameEnded) {
+      // If we are not in a state where COM should move, ensure thinking is false.
+      setIsComThinking(false);
+      return;
+    }
+
+    // New COM turn token: invalidates any previously scheduled callback.
+    const myToken = ++comTurnTokenRef.current;
 
     setIsComThinking(true);
 
-    // Small delay to make it feel responsive (and to avoid "instant" feeling),
-    // but still deterministic and quick.
-    const t = window.setTimeout(() => {
-      // Apply COM move *atomically*:
-      // - compute move from the latest board snapshot
-      // - only toggle activePlayer if a move was actually placed
-      // - always clear "thinking" even if no move is possible (safety against stuck UI)
+    comTimeoutRef.current = window.setTimeout(() => {
+      // If this callback is stale (because a new turn started / restart happened), do nothing.
+      if (comTurnTokenRef.current !== myToken) return;
+
       setBoard((prevBoard) => {
+        // If this callback is stale inside the state update, do nothing.
+        if (comTurnTokenRef.current !== myToken) return prevBoard;
+
         if (!Array.isArray(prevBoard) || prevBoard.length !== 9) {
-          // Safety: board is unexpected; release thinking so UI doesn't get stuck.
           setIsComThinking(false);
           return prevBoard;
         }
 
         if (getWinner(prevBoard) || isDraw(prevBoard)) {
-          // Game ended before COM could move; release thinking.
           setIsComThinking(false);
           return prevBoard;
         }
 
-        const move = pickComputerMove(prevBoard, comSymbol);
+        let move = pickComputerMove(prevBoard, comSymbol);
 
-        // No legal move found (should only happen on draw/end), but handle defensively.
-        if (move === null || prevBoard[move]) {
+        // Defensive fallback: if AI returns an illegal move, pick the first empty cell.
+        if (move === null || move < 0 || move > 8 || prevBoard[move] !== '') {
+          move = prevBoard.findIndex((v) => v === '');
+        }
+
+        if (move === -1) {
+          // No legal moves (draw) — just clear thinking.
           setIsComThinking(false);
           return prevBoard;
         }
@@ -213,7 +239,7 @@ function App() {
         const next = prevBoard.slice();
         next[move] = comSymbol;
 
-        // Only now advance the turn to the human.
+        // Advance turn back to human and clear thinking.
         setActivePlayer('X');
         setIsComThinking(false);
 
@@ -221,11 +247,31 @@ function App() {
       });
     }, 220);
 
-    return () => window.clearTimeout(t);
-  }, [screen, isComTurn, gameEnded, isComThinking, comSymbol]);
+    return () => {
+      // Invalidate any in-flight timeout for this effect run.
+      if (comTurnTokenRef.current === myToken) {
+        comTurnTokenRef.current++;
+      }
+
+      if (comTimeoutRef.current) {
+        window.clearTimeout(comTimeoutRef.current);
+        comTimeoutRef.current = null;
+      }
+
+      // Ensure UI never remains stuck in "thinking…" due to cleanup.
+      setIsComThinking(false);
+    };
+  }, [screen, isComTurn, gameEnded, comSymbol]);
 
   // PUBLIC_INTERFACE
   const startGame = (selectedMode) => {
+    // Cancel any pending COM move from a previous session/mode.
+    comTurnTokenRef.current++;
+    if (comTimeoutRef.current) {
+      window.clearTimeout(comTimeoutRef.current);
+      comTimeoutRef.current = null;
+    }
+
     setMode(selectedMode);
     setScreen('game');
     // Start fresh each time a mode is chosen.
@@ -257,6 +303,13 @@ function App() {
 
   // PUBLIC_INTERFACE
   const handleRestart = () => {
+    // Cancel any pending COM move from the previous turn.
+    comTurnTokenRef.current++;
+    if (comTimeoutRef.current) {
+      window.clearTimeout(comTimeoutRef.current);
+      comTimeoutRef.current = null;
+    }
+
     // Deterministic reset: X always starts, empty board, no result.
     setBoard(createEmptyBoard());
     setActivePlayer('X');
@@ -266,6 +319,13 @@ function App() {
 
   // PUBLIC_INTERFACE
   const handleBackToStart = () => {
+    // Cancel any pending COM move when leaving the game screen.
+    comTurnTokenRef.current++;
+    if (comTimeoutRef.current) {
+      window.clearTimeout(comTimeoutRef.current);
+      comTimeoutRef.current = null;
+    }
+
     setScreen('start');
     setMode(null);
     setBoard(createEmptyBoard());
