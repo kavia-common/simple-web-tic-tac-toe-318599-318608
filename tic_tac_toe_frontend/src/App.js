@@ -185,25 +185,44 @@ function App() {
     // Small delay to make it feel responsive (and to avoid "instant" feeling),
     // but still deterministic and quick.
     const t = window.setTimeout(() => {
+      // Apply COM move *atomically*:
+      // - compute move from the latest board snapshot
+      // - only toggle activePlayer if a move was actually placed
+      // - always clear "thinking" even if no move is possible (safety against stuck UI)
       setBoard((prevBoard) => {
-        // Re-check against latest state inside the state setter to avoid races.
-        if (!Array.isArray(prevBoard) || prevBoard.length !== 9) return prevBoard;
-        if (getWinner(prevBoard) || isDraw(prevBoard)) return prevBoard;
+        if (!Array.isArray(prevBoard) || prevBoard.length !== 9) {
+          // Safety: board is unexpected; release thinking so UI doesn't get stuck.
+          setIsComThinking(false);
+          return prevBoard;
+        }
+
+        if (getWinner(prevBoard) || isDraw(prevBoard)) {
+          // Game ended before COM could move; release thinking.
+          setIsComThinking(false);
+          return prevBoard;
+        }
 
         const move = pickComputerMove(prevBoard, comSymbol);
-        if (move === null || prevBoard[move]) return prevBoard;
+
+        // No legal move found (should only happen on draw/end), but handle defensively.
+        if (move === null || prevBoard[move]) {
+          setIsComThinking(false);
+          return prevBoard;
+        }
 
         const next = prevBoard.slice();
         next[move] = comSymbol;
+
+        // Only now advance the turn to the human.
+        setActivePlayer('X');
+        setIsComThinking(false);
+
         return next;
       });
-
-      setActivePlayer((p) => (p === 'X' ? 'O' : 'X'));
-      setIsComThinking(false);
     }, 220);
 
     return () => window.clearTimeout(t);
-  }, [screen, isComTurn, gameEnded, isComThinking]);
+  }, [screen, isComTurn, gameEnded, isComThinking, comSymbol]);
 
   // PUBLIC_INTERFACE
   const startGame = (selectedMode) => {
