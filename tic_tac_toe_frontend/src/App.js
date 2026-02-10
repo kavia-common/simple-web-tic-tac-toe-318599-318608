@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
+import { pickComputerMove } from './ai';
 
 /**
  * Stateless square for the Tic Tac Toe board.
@@ -62,10 +63,65 @@ function Board({ squares, onSquareClick, disabled, winnerLine }) {
   );
 }
 
+/**
+ * Landing screen for selecting game mode.
+ */
+function StartScreen({ onSelectMode }) {
+  return (
+    <div className="ttt-startPage" aria-label="Start screen">
+      <div className="ttt-startCard ttt-enter" role="region" aria-label="Mode selection">
+        <div className="ttt-startDecor" aria-hidden="true">
+          <div className="ttt-orb ttt-orb--primary" />
+          <div className="ttt-orb ttt-orb--accent" />
+        </div>
+
+        <header className="ttt-header ttt-startHeader">
+          <div className="ttt-startIcon" aria-hidden="true">
+            ⭕❌
+          </div>
+          <h1 className="ttt-title">Tic Tac Toe</h1>
+          <p className="ttt-subtitle">
+            Pick a mode to start a quick match. Keyboard-friendly and responsive.
+          </p>
+        </header>
+
+        <div className="ttt-startActions" role="group" aria-label="Choose game mode">
+          <button
+            type="button"
+            className="ttt-modeBtn ttt-modeBtn--primary"
+            onClick={() => onSelectMode('hvh')}
+            aria-label="Start Human versus Human"
+          >
+            Human vs Human
+          </button>
+          <button
+            type="button"
+            className="ttt-modeBtn ttt-modeBtn--accent"
+            onClick={() => onSelectMode('hvc')}
+            aria-label="Start Human versus Computer"
+          >
+            Human vs Computer <span className="ttt-modeBtnHint">(COM)</span>
+          </button>
+        </div>
+
+        <p className="ttt-startFootnote">
+          Tip: In COM mode, you play as <strong>X</strong> and the computer plays as <strong>O</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // PUBLIC_INTERFACE
 function App() {
+  const [screen, setScreen] = useState('start'); // 'start' | 'game'
+  const [mode, setMode] = useState(null); // 'hvh' | 'hvc' | null
+
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [activePlayer, setActivePlayer] = useState('X'); // X always starts
+
+  // Used to prevent multiple AI moves during a single turn/render cycle.
+  const [isComThinking, setIsComThinking] = useState(false);
 
   const restartBtnRef = useRef(null);
   const bannerRef = useRef(null);
@@ -73,6 +129,10 @@ function App() {
   const winnerInfo = useMemo(() => getWinner(board), [board]);
   const draw = useMemo(() => isDraw(board), [board]);
   const gameEnded = Boolean(winnerInfo) || draw;
+
+  const isComMode = mode === 'hvc';
+  const comSymbol = 'O';
+  const isComTurn = isComMode && activePlayer === comSymbol;
 
   // Keep the turn indicator unambiguous: it becomes winner/draw messaging when ended.
   const statusText = useMemo(() => {
@@ -110,10 +170,58 @@ function App() {
     }
   }, [gameEnded]);
 
+  /**
+   * COM mode: automatically make a legal move after the human's turn.
+   * This effect is deterministic and guarded to avoid multiple AI moves.
+   */
+  useEffect(() => {
+    if (screen !== 'game') return;
+    if (!isComTurn) return;
+    if (gameEnded) return;
+    if (isComThinking) return;
+
+    setIsComThinking(true);
+
+    // Small delay to make it feel responsive (and to avoid "instant" feeling),
+    // but still deterministic and quick.
+    const t = window.setTimeout(() => {
+      setBoard((prevBoard) => {
+        // Re-check against latest state inside the state setter to avoid races.
+        if (!Array.isArray(prevBoard) || prevBoard.length !== 9) return prevBoard;
+        if (getWinner(prevBoard) || isDraw(prevBoard)) return prevBoard;
+
+        const move = pickComputerMove(prevBoard, comSymbol);
+        if (move === null || prevBoard[move]) return prevBoard;
+
+        const next = prevBoard.slice();
+        next[move] = comSymbol;
+        return next;
+      });
+
+      setActivePlayer((p) => (p === 'X' ? 'O' : 'X'));
+      setIsComThinking(false);
+    }, 220);
+
+    return () => window.clearTimeout(t);
+  }, [screen, isComTurn, gameEnded, isComThinking]);
+
+  // PUBLIC_INTERFACE
+  const startGame = (selectedMode) => {
+    setMode(selectedMode);
+    setScreen('game');
+    // Start fresh each time a mode is chosen.
+    setBoard(createEmptyBoard());
+    setActivePlayer('X');
+    setIsComThinking(false);
+  };
+
   // PUBLIC_INTERFACE
   const handleSquareClick = (index) => {
     // Block all interactions after game end.
     if (gameEnded) return;
+
+    // In COM mode, prevent the human from moving during COM's turn.
+    if (isComMode && isComTurn) return;
 
     // If user clicks an already-filled square, do nothing.
     if (board[index]) return;
@@ -133,8 +241,28 @@ function App() {
     // Deterministic reset: X always starts, empty board, no result.
     setBoard(createEmptyBoard());
     setActivePlayer('X');
+    setIsComThinking(false);
     // Focus behavior: keep focus on the Restart button (default browser behavior).
   };
+
+  // PUBLIC_INTERFACE
+  const handleBackToStart = () => {
+    setScreen('start');
+    setMode(null);
+    setBoard(createEmptyBoard());
+    setActivePlayer('X');
+    setIsComThinking(false);
+  };
+
+  if (screen === 'start') {
+    return (
+      <div className="App">
+        <main className="ttt-page" aria-label="Tic Tac Toe">
+          <StartScreen onSelectMode={startGame} />
+        </main>
+      </div>
+    );
+  }
 
   const bannerKindClass = winnerInfo
     ? 'winner-banner--win'
@@ -144,11 +272,38 @@ function App() {
 
   const restartEmphasisClass = gameEnded ? 'ttt-restartBtn--emphasis' : '';
 
+  const modeLabel = mode === 'hvh' ? 'Human vs Human' : 'Human vs Computer';
+  const modeBadgeClass = mode === 'hvh' ? 'ttt-modeBadge--hvh' : 'ttt-modeBadge--hvc';
+
+  const inputDisabled = gameEnded || (isComMode && isComTurn);
+
   return (
     <div className="App">
       <main className="ttt-page" aria-label="Tic Tac Toe">
-        <section className="ttt-card" aria-label="Game area">
+        <section className="ttt-card ttt-enter" aria-label="Game area">
           <header className="ttt-header">
+            <div className="ttt-topRow">
+              <div className="ttt-badges" aria-label="Game metadata">
+                <span className={`ttt-modeBadge ${modeBadgeClass}`.trim()} aria-label={`Mode: ${modeLabel}`}>
+                  {modeLabel}
+                </span>
+                {isComMode && (
+                  <span className="ttt-miniBadge" aria-live="polite" aria-label="Computer status">
+                    {isComThinking || isComTurn ? 'COM thinking…' : 'Your move'}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="ttt-backBtn"
+                onClick={handleBackToStart}
+                aria-label="Back to start screen"
+              >
+                Back to Start
+              </button>
+            </div>
+
             <h1 className="ttt-title">Tic Tac Toe</h1>
             <p className="ttt-subtitle">A simple 3×3 game for two players</p>
           </header>
@@ -166,7 +321,7 @@ function App() {
             <Board
               squares={board}
               onSquareClick={handleSquareClick}
-              disabled={gameEnded}
+              disabled={inputDisabled}
               winnerLine={winnerInfo?.line || null}
             />
           </div>
