@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
 
@@ -7,13 +7,17 @@ import { createEmptyBoard, getWinner, isDraw } from './gameLogic';
  * UI only: click handler is passed in.
  */
 function Square({ value, index, onClick, disabled }) {
+  const row = Math.floor(index / 3) + 1;
+  const col = (index % 3) + 1;
+  const valueLabel = value ? value : 'empty';
+
   return (
     <button
       type="button"
       className="ttt-square"
       onClick={onClick}
       disabled={disabled}
-      aria-label={`Square ${index + 1}${value ? `: ${value}` : ': empty'}`}
+      aria-label={`Row ${row} Column ${col}: ${valueLabel}`}
     >
       <span className="ttt-squareValue" aria-hidden="true">
         {value}
@@ -35,7 +39,7 @@ function Board({ squares, onSquareClick, disabled }) {
             value={value}
             index={idx}
             onClick={() => onSquareClick?.(idx)}
-            disabled={disabled}
+            disabled={disabled || Boolean(value)}
           />
         </div>
       ))}
@@ -48,44 +52,44 @@ function App() {
   const [board, setBoard] = useState(() => createEmptyBoard());
   const [activePlayer, setActivePlayer] = useState('X'); // X always starts
 
+  const statusRef = useRef(null);
+
   const winnerInfo = useMemo(() => getWinner(board), [board]);
   const draw = useMemo(() => isDraw(board), [board]);
-
   const gameEnded = Boolean(winnerInfo) || draw;
 
-  const statusText = winnerInfo
-    ? `Winner: ${winnerInfo.winner}`
-    : draw
-      ? 'Draw'
-      : `Turn: ${activePlayer}`;
+  const statusText = useMemo(() => {
+    if (winnerInfo) return `Player ${winnerInfo.winner} wins!`;
+    if (draw) return `It's a draw`;
+    return `Player ${activePlayer}'s turn`;
+  }, [winnerInfo, draw, activePlayer]);
 
-  const resultText = winnerInfo
-    ? `${winnerInfo.winner} wins!`
-    : draw
-      ? `It's a draw.`
-      : 'Result: —';
+  /**
+   * When the game ends (win/draw), move focus to the status message so screen readers
+   * announce the result change in a predictable way.
+   */
+  useEffect(() => {
+    if (gameEnded) {
+      statusRef.current?.focus?.();
+    }
+  }, [gameEnded]);
 
   // PUBLIC_INTERFACE
   const handleSquareClick = (index) => {
     // Block all interactions after game end.
     if (gameEnded) return;
 
-    setBoard((prev) => {
-      // If user clicks an already-filled square, do nothing.
-      if (prev[index]) return prev;
+    // If user clicks an already-filled square, do nothing.
+    if (board[index]) return;
 
-      const next = prev.slice();
-      next[index] = activePlayer;
+    // Apply the move and compute next player based on the move validity.
+    const nextBoard = board.slice();
+    nextBoard[index] = activePlayer;
 
-      return next;
-    });
+    setBoard(nextBoard);
 
-    // Only toggle player if the move is valid (square was empty and game not ended).
-    // We must check the current board square synchronously (not from state update result),
-    // so we use the latest `board` value here.
-    if (!board[index]) {
-      setActivePlayer((p) => (p === 'X' ? 'O' : 'X'));
-    }
+    // Toggle player (game-end state will be derived from next board on re-render).
+    setActivePlayer((p) => (p === 'X' ? 'O' : 'X'));
   };
 
   // PUBLIC_INTERFACE
@@ -93,6 +97,8 @@ function App() {
     // Deterministic reset: X always starts, empty board, no result.
     setBoard(createEmptyBoard());
     setActivePlayer('X');
+    // Focus behavior: keep focus on the Restart button (default browser behavior).
+    // Status remains a polite live region for the reset announcement.
   };
 
   return (
@@ -104,8 +110,16 @@ function App() {
             <p className="ttt-subtitle">A simple 3×3 game for two players</p>
           </header>
 
-          <div className="ttt-status" aria-live="polite">
-            <span className="ttt-statusLabel">{statusText}</span>
+          <div className="ttt-status">
+            <span
+              ref={statusRef}
+              className="ttt-statusLabel"
+              role="status"
+              aria-live="polite"
+              tabIndex={-1}
+            >
+              {statusText}
+            </span>
           </div>
 
           <div className="ttt-boardWrap" aria-label="Board container">
@@ -114,10 +128,6 @@ function App() {
               onSquareClick={handleSquareClick}
               disabled={gameEnded}
             />
-          </div>
-
-          <div className="ttt-result" aria-live="polite" aria-label="Result">
-            {resultText}
           </div>
 
           <div className="ttt-actions">
