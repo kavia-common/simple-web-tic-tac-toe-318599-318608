@@ -103,32 +103,25 @@ function ThemeSelector({ theme, onChange }) {
   };
 
   return (
-    <div className="ttt-themeSelector" role="group" aria-label="Theme selection">
-      <span className="ttt-themeLabel" id="theme-label">
-        Theme
-      </span>
-
-      <button
-        type="button"
-        className={`ttt-themeToggle ${isDark ? 'is-dark' : 'is-light'}`.trim()}
-        role="switch"
-        aria-checked={isDark}
-        aria-labelledby="theme-label"
-        aria-label="Theme"
-        onClick={toggle}
-        onKeyDown={handleKeyDown}
-      >
-        <span className="ttt-themeToggleTrack" aria-hidden="true">
-          <span className="ttt-themeToggleOption ttt-themeToggleOption--left" aria-hidden="true">
-            Light
-          </span>
-          <span className="ttt-themeToggleOption ttt-themeToggleOption--right" aria-hidden="true">
-            Dark
-          </span>
-          <span className="ttt-themeToggleKnob" aria-hidden="true" />
+    <button
+      type="button"
+      className={`ttt-themeToggle ${isDark ? 'is-dark' : 'is-light'}`.trim()}
+      role="switch"
+      aria-checked={isDark}
+      aria-label="Theme"
+      onClick={toggle}
+      onKeyDown={handleKeyDown}
+    >
+      <span className="ttt-themeToggleTrack" aria-hidden="true">
+        <span className="ttt-themeToggleOption ttt-themeToggleOption--left" aria-hidden="true">
+          Light
         </span>
-      </button>
-    </div>
+        <span className="ttt-themeToggleOption ttt-themeToggleOption--right" aria-hidden="true">
+          Dark
+        </span>
+        <span className="ttt-themeToggleKnob" aria-hidden="true" />
+      </span>
+    </button>
   );
 }
 

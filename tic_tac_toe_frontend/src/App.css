@@ -580,31 +580,6 @@ html[data-theme='dark'] {
   margin-bottom: 8px;
 }
 
-.ttt-themeSelector {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-
-  /* Fallback first */
-  background: var(--surface);
-
-  /* If supported, add a subtle translucency on both themes */
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-
-  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
-}
-
-/* Keep label sizing consistent with the previous dropdown version */
-.ttt-themeLabel {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--muted);
-  line-height: 1.1;
-}
-
 /*
   Theme toggle (Light <-> Dark)
   - Stable dimensions to avoid layout shift
@@ -698,7 +673,7 @@ html[data-theme='dark'] {
 /* Improve perceived state by strengthening active side label */
 .ttt-themeToggle.is-light .ttt-themeToggleOption--left,
 .ttt-themeToggle.is-dark .ttt-themeToggleOption--right {
-  color: var(--text);
+  color: #ffffff;
 }
 
 html[data-theme='dark'] .ttt-themeToggleKnob {
